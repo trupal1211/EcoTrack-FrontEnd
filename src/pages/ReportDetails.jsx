@@ -1,0 +1,379 @@
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
+import toast from "react-hot-toast";
+import Slider from "react-slick";
+import moment from "moment";
+import {
+  MessageCircle,
+  ArrowBigUp,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
+// Custom slider arrows
+const CustomNextArrow = ({ onClick }) => (
+  <button
+    className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 p-1.5 rounded-full z-10 hover:bg-white hidden md:flex"
+    onClick={onClick}
+  >
+    <ChevronRight size={18} />
+  </button>
+);
+const CustomPrevArrow = ({ onClick }) => (
+  <button
+    className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 p-1.5 rounded-full z-10 hover:bg-white hidden md:flex"
+    onClick={onClick}
+  >
+    <ChevronLeft size={18} />
+  </button>
+);
+
+export default function ReportDetails() {
+  const { reportId } = useParams();
+  const { user } = useAuth();
+
+  const [report, setReport] = useState(null);
+  const [comment, setComment] = useState("");
+  const [loadingComment, setLoadingComment] = useState(false);
+  const [loadingUpvote, setLoadingUpvote] = useState(false);
+  const [loadingTake, setLoadingTake] = useState(false);
+  const [showDueModal, setShowDueModal] = useState(false);
+  const [dueDateInput, setDueDateInput] = useState("");
+  const [photoSlide, setPhotoSlide] = useState(1);
+  const [resolvedSlide, setResolvedSlide] = useState(1);
+  const [showMobileComments, setShowMobileComments] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    api
+      .get(`/report/reports/${reportId}`)
+      .then((res) => setReport(res.data.report))
+      .catch(() => toast.error("Failed to fetch report"));
+  }, [reportId]);
+
+
+  if (!report) return null;
+
+  const {
+    _id, title, description, photos = [], landmark, city, status,
+    postedBy, takenBy, resolvedImages = [], resolutionDescription,
+    dueDate, createdAt, comments = [], upvotes = [], takenOn, resolvedOn
+  } = report;
+
+  const hasUpvoted = user && upvotes.includes(user._id);
+  const canTake = status === "pending" && (user?.role === "ngo" || user?.role === "admin");
+
+  const toggleUpvote = async () => {
+    if (!user) return toast.error("Login to vote");
+    setLoadingUpvote(true);
+    await api[hasUpvoted ? "delete" : "post"](`/report/upvote/${_id}`).catch(() =>
+      toast.error("Failed vote")
+    );
+    const res = await api.get(`/report/reports/${_id}`);
+    setReport(res.data.report);
+    setLoadingUpvote(false);
+  };
+
+  const submitComment = async () => {
+    if (!comment.trim()) return;
+    setLoadingComment(true);
+    await api
+      .post(`/report/comment/${_id}`, { text: comment })
+      .catch(() => toast.error("Comment error"));
+    const res = await api.get(`/report/reports/${_id}`);
+    setReport(res.data.report);
+    setComment("");
+    setLoadingComment(false);
+  };
+
+  const submitDueDate = async () => {
+    if (!dueDateInput) return toast.error("Select a date");
+    setLoadingTake(true);
+    await api
+      .put(`/ngo/take/${_id}`, { dueDate: dueDateInput })
+      .catch(() => toast.error("Failed to take"));
+    const res = await api.get(`/report/reports/${_id}`);
+    setReport(res.data.report);
+    setShowDueModal(false);
+    setLoadingTake(false);
+  };
+
+  const sliderSettings = (setIndex) => ({
+    dots: false, arrows: true, infinite: false, speed: 300, slidesToShow: 1,
+    afterChange: (idx) => setIndex(idx + 1),
+    nextArrow: <CustomNextArrow />, prevArrow: <CustomPrevArrow />,
+  });
+
+  return (
+    <div className="fixed inset-0 top-[68px] bg-gray-100 overflow-hidden">
+      <div className="w-full max-w-[1050px] mx-auto h-[calc(100vh-68px)] flex flex-col md:flex-row bg-white shadow-md overflow-y-auto">
+        {/* Left Section */}
+        <div className="w-full md:w-[60%] h-full overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300">
+          <div className="max-w-[500px] w-full mx-auto space-y-4">
+            {/* Report Card */}
+            <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+              <div className="flex justify-between items-center px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <img src={postedBy?.photo} alt={postedBy?.name}
+                    className="w-10 h-10 rounded-full object-cover border" />
+                  <div>
+                    <p className="font-semibold text-sm text-gray-800">{postedBy?.name}</p>
+                    <p className="text-xs text-gray-500">{postedBy?.city}</p>
+                  </div>
+                </div>
+                <span className={`text-xs px-3 py-1 rounded-full capitalize font-medium ${status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                    status === "taken" ? "bg-blue-100 text-blue-700" :
+                      "bg-green-100 text-green-700"
+                  }`}>{status}</span>
+              </div>
+
+              <h3 className="px-5 pb-2 text-base font-semibold">{title}</h3>
+
+              {/* Photos Slider */}
+              {photos.length > 0 && (
+                <div className="relative">
+                  <Slider {...sliderSettings(setPhotoSlide)}>
+                    {photos.map((url, i) => (
+                      <img key={i} src={url}
+                        className="w-full h-[280px] md:h-[340px] object-cover" />
+                    ))}
+                  </Slider>
+                  {photos.length > 1 && (
+                    <span className="absolute top-2 right-3 text-xs bg-black/60 text-white px-2 py-0.5 rounded">
+                      {photoSlide}/{photos.length}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="px-4 py-2 space-y-1 text-sm text-gray-800">
+                <p>{description}</p>
+                <p className="text-xs text-gray-500">{landmark}, {city}</p>
+              </div>
+
+              <div className="flex justify-between items-center px-4 py-2.5 border-t text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <ArrowBigUp size={24} stroke={hasUpvoted ? "#3b82f6" : "#9ca3af"}
+                    fill={hasUpvoted ? "#3b82f6" : "none"}
+                    className={`cursor-pointer ${loadingUpvote && "opacity-50"}`}
+                    onClick={toggleUpvote} />
+                  <span>{upvotes.length}</span>
+                </div>
+                <div onClick={() => setShowMobileComments(true)} className="flex items-center gap-2">
+                  <MessageCircle size={20} />
+                  <span>{comments.length}</span>
+                </div>
+                <span className="text-xs text-gray-500">{moment(createdAt).fromNow()}</span>
+              </div>
+
+
+
+              {status !== "pending" && takenBy && (
+                <div className={`${status === "completed" ? "bg-green-50" : "bg-blue-50"} p-4 text-sm mt-2`}>
+                  {/* Header Row: NGO Info + Taken/Due Dates */}
+                  <div className={"mb-4 font-semibold text-[16px]"}> {status === "completed" ? "Resolved By " : "taken By"} </div>
+                  <div className={`flex justify-between items-start flex-wrap gap-3`}>
+                    <div className="flex items-center gap-3">
+                      <img src={takenBy.photo} alt={takenBy.name} className="w-10 h-10 rounded-full object-cover border" />
+                      <div>
+                        <p className={`${status === "completed" ? "text-green-700" : "text-blue-700"} font-semibold text-[15px]`}>{takenBy.name}</p>
+                        <p className={`text-x text-gray-600`}>{takenBy.city}</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right text-xs text-gray-900 space-y-1 min-w-[140px]">
+                      {takenOn && <p>Taken On : {moment(takenOn).format("MMM D, YYYY")}</p>}
+                      {dueDate && <p className="text-red-500">Due Date : {moment(dueDate).format("MMM D, YYYY")}</p>}
+                    </div>
+                  </div>
+
+                  {/* Resolved Date */}
+                  {status === "completed" && resolvedOn && (
+                    <p className="text-green-700 text-x font-medium mt-4">
+                      Completed On : {moment(resolvedOn).format("MMM D, YYYY")}
+                    </p>
+                  )}
+
+                  {/* Description */}
+                  {status === "completed" && resolutionDescription && (
+                    <p className="mt-3 text-gray-700">{resolutionDescription}</p>
+                  )}
+
+                  {/* Images */}
+                  {status === "completed" && resolvedImages.length > 0 && (
+                    <div className="relative mt-3">
+                      <Slider {...sliderSettings(setResolvedSlide)}>
+                        {resolvedImages.map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            className="w-full h-full object-cover rounded"
+                            alt={`Resolved ${i}`}
+                          />
+                        ))}
+                      </Slider>
+                      {resolvedImages.length > 1 && (
+                        <span className="absolute top-2 right-3 text-xs bg-black/60 text-white px-2 py-0.5 rounded">
+                          {resolvedSlide}/{resolvedImages.length}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+
+              {canTake && (
+                <button
+                  onClick={() => setShowDueModal(true)}
+                  disabled={loadingTake}
+                  className="w-full py-3 bg-green-600 text-white font-semibold mt-2 hover:bg-green-700"
+                >
+                  {loadingTake ? "Processing…" : "Take this report"}
+                </button>
+              )}
+            </div>
+
+            {/* Mobile Comments Toggle */}
+            {windowWidth <= 768 && (
+              <div className="md:hidden mt-3">
+                <button
+                  onClick={() => setShowMobileComments(true)}
+                  className="w-full py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium"
+                >
+                  View Comments
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop Comments */}
+        <div className="hidden md:flex flex-col w-[40%] border-l h-full">
+          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 p-4 space-y-4">
+            {comments.length === 0 ? (
+              <p className="text-sm text-center text-gray-400 mt-4">
+                No comments yet.
+              </p>
+            ) : comments.map((c) => (
+              <div key={c._id} className="flex gap-2">
+                <img src={c.user?.photo} alt={c.user?.name}
+                  className="w-8 h-8 rounded-full object-cover" />
+                <div>
+                  <p className="text-sm font-medium">{c.user?.name}</p>
+                  <p className="text-sm">{c.text}</p>
+                  <span className="text-xs text-gray-400">
+                    {moment(c.createdAt).fromNow()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="p-4 border-t flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Write a comment..."
+              value={comment}
+              disabled={loadingComment}
+              onChange={(e) => setComment(e.target.value)}
+              className="flex-1 border rounded px-3 py-2"
+            />
+            <button
+              onClick={submitComment}
+              disabled={loadingComment}
+              className={`px-3 py-2 bg-green-600 text-white rounded ${loadingComment ? "opacity-50" : "hover:bg-green-700"}`}
+            >
+              Send
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Comments Drawer */}
+        {showMobileComments && (
+          <div className="fixed inset-0 z-[999] bg-white flex flex-col"
+            style={{ top: '130px', height: 'calc(100vh - 130px)' }}>
+            <div className="flex justify-between items-center px-4 py-3 border-b bg-gray-100">
+              <h3 className="text-base font-semibold">Comments</h3>
+              <button
+                onClick={() => setShowMobileComments(false)}
+                className="text-gray-500 text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+              {comments.length === 0 ? (
+                <p className="text-sm text-center text-gray-400 mt-4">No comments yet.</p>
+              ) : comments.map((c) => (
+                <div key={c._id} className="flex gap-2">
+                  <img src={c.user?.photo} alt={c.user?.name}
+                    className="w-8 h-8 rounded-full object-cover" />
+                  <div>
+                    <p className="text-sm font-medium">{c.user?.name}</p>
+                    <p className="text-sm">{c.text}</p>
+                    <span className="text-xs text-gray-400">{moment(c.createdAt).fromNow()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-4 border-t flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Write a comment..."
+                value={comment}
+                disabled={loadingComment}
+                onChange={(e) => setComment(e.target.value)}
+                className="flex-1 border rounded px-3 py-2"
+              />
+              <button
+                onClick={submitComment}
+                disabled={loadingComment}
+                className={`px-3 py-2 bg-green-600 text-white rounded ${loadingComment ? "opacity-50" : "hover:bg-green-700"}`}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Due Date Modal */}
+        {showDueModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
+              <h3 className="font-semibold flex items-center gap-1 mb-3">
+                <Calendar size={20} /> Set Due Date
+              </h3>
+              <input
+                type="date"
+                value={dueDateInput}
+                onChange={(e) => setDueDateInput(e.target.value)}
+                className="w-full border px-3 py-2 rounded mb-4"
+              />
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setShowDueModal(false)} className="px-4 py-2 rounded border">
+                  Cancel
+                </button>
+                <button
+                  onClick={submitDueDate}
+                  disabled={loadingTake}
+                  className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50 hover:bg-green-700"
+                >
+                  Take
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

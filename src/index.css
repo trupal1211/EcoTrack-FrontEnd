@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Add this if you use global styles */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 2px !important;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #4e4e4e; /* gray-300 */
+  border-radius: 2px;
+}
