@@ -2,7 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { Toaster } from 'react-hot-toast';
 
 import PublicRoute from "./components/PublicRoute";
-import PrivateRoute from "./components/PrivateRoute.JSX";
+import PrivateRoute from "./components/PrivateRoute";
 
 import Layout from "./pages/Layout";
 
