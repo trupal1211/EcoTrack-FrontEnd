@@ -23,7 +23,7 @@ export default function Home() {
   const fetchReports = async () => {
     try {
       const res = await api.get("/report/filter", {
-        params: { city, status, page, limit: 10 },
+        params: { city:user.city, status , page: 1, limit: 10 },
       });
       setReports(res.data.reports);
       setTotalPages(res.data.totalPages);
