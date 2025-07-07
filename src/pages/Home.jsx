@@ -5,10 +5,15 @@ import api from "../services/api";
 import toast from "react-hot-toast";
 import CreateReport from "../components/CreateReport";
 import { useAuth } from "../contexts/AuthContext";
+import { useRef } from "react";
+
 
 export default function Home() {
   const { user } = useAuth();
+  const reportListRef = useRef();
+
   const [reports, setReports] = useState([]);
+  const [reportLocations,setReportLocations]=useState([])
   const [city, setCity] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
@@ -16,13 +21,31 @@ export default function Home() {
   const [showForm, setShowForm] = useState(false);
   const [showMapMobile, setShowMapMobile] = useState(false);
 
-  useEffect(() => {
-    fetchReports();
-  }, [city, status, page]);
+useEffect(() => {
+  setPage(1); // ✅ Reset page when filter changes
+}, [city, status]);
+
+useEffect(() => {
+  fetchReports();
+}, [page]);
+
+useEffect(() => {
+  fetchReportsForLocation();
+  fetchReports();
+}, [city, status]);
+
+useEffect(() => {
+  fetchReports();
+  if (reportListRef.current) {
+    reportListRef.current.scrollIntoView({ behavior: "smooth" });
+  }
+}, [page]);
+
+
 
   const fetchReports = async () => {
     try {
-      const res = await api.get("/report/filter", {
+      const res = await api.get("report/filter-paging", {
         params: { city, status , page, limit: 10 },
       });
       setReports(res.data.reports);
@@ -32,11 +55,22 @@ export default function Home() {
     }
   };
 
-  const dummyReports = reports.map((r) => ({
+  const fetchReportsForLocation = async () => {
+    try {
+      const res = await api.get("report/filter", {
+        params: { city, status },
+      });
+      setReportLocations(res.data.reports);
+    } catch (err) {
+      toast.error("Failed to fetch reports");
+    }
+  };
+
+  const locations = reportLocations.map((r) => ({
     _id: r._id,
     title: r.title,
     status: r.status,
-    location: r.autoLocation || { lat: 22.7446, lng: 74.3933 },
+    location: r.autoLocation,
   }));
 
   return (
@@ -67,7 +101,7 @@ export default function Home() {
         </div>
 
         {/* Report Cards */}
-        <div className="mt-2 space-y-4 flex flex-col items-center">
+        <div ref={reportListRef} className="mt-2 space-y-4 flex flex-col items-center">
           {reports.map((report) => (
             <ReportCard key={report._id} report={report} />
           ))}
@@ -100,7 +134,7 @@ export default function Home() {
       {/* Right - Map (Desktop only) */}
       <div className="hidden md:block w-[40%] p-4">
         <div className="w-full h-[82%] rounded-xl overflow-hidden border shadow-md sticky top-[28px]">
-          <GoogleMap reports={dummyReports} />
+          <GoogleMap reports={locations} userCity={user.city} />
         </div>
       </div>
 
@@ -115,7 +149,7 @@ export default function Home() {
               &#x2715;
             </button>
           </div>
-          <GoogleMap reports={dummyReports} />
+          <GoogleMap reports={locations} userCity={user.city} />
         </div>
       )}
 

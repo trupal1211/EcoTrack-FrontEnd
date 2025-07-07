@@ -1,23 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-export default function GoogleMap({ reports = [ {
-      _id: "1",
-      title: "Broken Drain",
-      status: "pending",
-      location: { lat: 21.1702, lng: 72.8311 },
-    },
-    {
-      _id: "2",
-      title: "Illegal Dumping",
-      status: "taken",
-      location: { lat: 21.1742, lng: 72.8345 },
-    },
-    {
-      _id: "3",
-      title: "Fixed Road",
-      status: "completed",
-      location: { lat: 21.1770, lng: 72.8380 },
-    },], userCity="surat"}) {
+export default function GoogleMap({ reports , userCity}) {
+  console.log(userCity)
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
 
@@ -139,6 +123,7 @@ export default function GoogleMap({ reports = [ {
             title: report.title,
             icon: getPinIcon(report.status),
           });
+          
         }
       });
     };

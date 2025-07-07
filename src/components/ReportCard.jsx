@@ -98,7 +98,8 @@ export default function ReportCard({ report }) {
     <div onClick={()=>navigate(`/report/${_id}`)} className="max-w-[500px] w-full bg-white border rounded-lg shadow-md">
       {/* Header */}
       <div className="flex justify-between items-center px-4 py-3">
-        <div className="flex items-center gap-3">
+        <div onClick={(e)=>{navigate(`/profile/${postedBy._id}`); e.stopPropagation()}}
+ className="flex items-center gap-3 hover:cursor-pointer">
           <img
             src={postedBy?.photo || `https://ui-avatars.com/api/?name=${postedBy?.name}`}
             alt="user"
@@ -106,7 +107,7 @@ export default function ReportCard({ report }) {
           />
           <div>
             <p className="font-semibold text-sm text-gray-800">{postedBy?.name}</p>
-            <p className="text-xs text-gray-500">{postedBy?.city || "Unknown"}</p>
+            <p className="text-xs text-gray-500">{city}</p>
           </div>
         </div>
         <span className={`text-xs px-3 py-1 rounded-full font-medium capitalize ${statusColor}`}>
@@ -119,7 +120,7 @@ export default function ReportCard({ report }) {
 
       {/* Image Slider */}
       {photos.length > 0 && (
-        <div onClick={(e) => e.stopPropagation()} className="relative">
+        <div className="relative">
           <Slider {...sliderSettings}>
             {photos.map((url, i) => (
               <img

@@ -66,10 +66,13 @@ export default function ProfilePage() {
             completed: completed.data.reports,
             incompleted: incompleted.data.reports,
           });
-        } else if (isOwnProfile) {
-          const res = await api.get("/report/my-reports");
-          setUserReports(res.data);
-        }
+        } else if (isOwnProfile && (profile.role === "user" || profile.role === "admin")) 
+          {
+         const res = await api.get(`/report/reports-by/${user._id}`);
+          setUserReports(res.data.reports);
+        }else if (profile.role === "user" || profile.role === "admin") {
+          const res = await api.get(`/report/reports-by/${userId}`);
+          setUserReports(res.data.reports);}
       } catch (err) {
         console.error("Error fetching reports", err);
         toast.error("Failed to load reports.");
@@ -152,14 +155,14 @@ export default function ProfilePage() {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b pb-6 gap-4">
         <div className="flex flex-col sm:flex-row items-center sm:items-center sm:gap-6 gap-4 w-full">
           <img
-            src={profile.photo}
+            src={profile?.photo}
             alt="Profile"
             className="w-24 h-24 rounded-full object-cover border shadow"
           />
 
           <div className="text-center sm:text-left">
-            <h2 className="text-2xl font-bold">{profile.name}</h2>
-            <p className="text-gray-600">{profile.city}</p>
+            <h2 className="text-2xl font-bold">{profile?.name}</h2>
+            <p className="text-gray-600">{profile?.city}</p>
 
             {profile.role === "ngo" && (
               <div className="mt-2 text-sm text-gray-700 space-y-1">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams,useNavigation } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
@@ -34,6 +34,8 @@ const CustomPrevArrow = ({ onClick }) => (
 export default function ReportDetails() {
   const { reportId } = useParams();
   const { user } = useAuth();
+
+  const navigate=useNavigate();
 
   const [report, setReport] = useState(null);
   const [comment, setComment] = useState("");
@@ -186,13 +188,14 @@ export default function ReportDetails() {
           <div className="max-w-[500px] w-full mx-auto space-y-4">
             {/* Report Card */}
             <div className="bg-white rounded-lg shadow-md border overflow-hidden">
-              <div className="flex justify-between items-center px-4 py-3">
+              <div onClick={(e) => { navigate(`/profile/${postedBy._id}`); e.stopPropagation() }}
+                className="flex justify-between items-center px-4 py-3 hover:cursor-pointer">
                 <div className="flex items-center gap-3">
                   <img src={postedBy?.photo} alt={postedBy?.name}
                     className="w-10 h-10 rounded-full object-cover border" />
                   <div>
                     <p className="font-semibold text-sm text-gray-800">{postedBy?.name}</p>
-                    <p className="text-xs text-gray-500">{postedBy?.city}</p>
+                    <p className="text-xs text-gray-500">{city}</p>
                   </div>
                 </div>
                 <span className={`text-xs px-3 py-1 rounded-full capitalize font-medium ${status === "pending" ? "bg-yellow-100 text-yellow-700" :
@@ -225,7 +228,7 @@ export default function ReportDetails() {
                 <p className="text-xs text-gray-500">{landmark}, {city}</p>
               </div>
 
-              <div className="flex justify-between items-center px-4 mb-4 py-2.5 border-t text-sm text-gray-600">
+              <div className="flex justify-between items-center px-4 mb-2 py-2.5 border-t text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <ArrowBigUp size={24} stroke={hasUpvoted ? "#3b82f6" : "#9ca3af"}
                     fill={hasUpvoted ? "#3b82f6" : "none"}
@@ -351,7 +354,7 @@ export default function ReportDetails() {
               <div className="md:hidden mt-3">
                 <button
                   onClick={() => setShowMobileComments(true)}
-                  className="w-full py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium"
+                  className="w-full py-2.5 mb-3 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium"
                 >
                   View Comments
                 </button>
@@ -368,11 +371,12 @@ export default function ReportDetails() {
                 No comments yet.
               </p>
             ) : comments.map((c) => (
-              <div key={c._id} className="flex gap-2">
+              <div className="flex gap-2">
                 <img src={c.user?.photo} alt={c.user?.name}
-                  className="w-8 h-8 rounded-full object-cover" />
+                  key={c._id} onClick={(e)=>{navigate(`/profile/${c._id}`); e.stopPropagation()}}
+                  className="w-8 h-8 rounded-full object-cover  hover:cursor-pointer" />
                 <div>
-                  <p className="text-sm font-medium">{c.user?.name}</p>
+                  <p onClick={(e)=>{navigate(`/profile/${c._id}`); e.stopPropagation()} } className="text-sm font-medium hover:cursor-pointer">{c.user?.name}</p>
                   <p className="text-sm">{c.text}</p>
                   <span className="text-xs text-gray-400">
                     {moment(c.createdAt).fromNow()}
@@ -400,10 +404,11 @@ export default function ReportDetails() {
           </div>
         </div>
 
-        {/* Mobile Comments Drawer */}
         {showMobileComments && (
           <div className="fixed inset-0 z-[999] bg-white flex flex-col"
             style={{ top: '130px', height: 'calc(100vh - 130px)' }}>
+
+            {/* Header */}
             <div className="flex justify-between items-center px-4 py-3 border-b bg-gray-100">
               <h3 className="text-base font-semibold">Comments</h3>
               <button
@@ -413,40 +418,49 @@ export default function ReportDetails() {
                 ×
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+
+            {/* Scrollable Comments */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 mb-[76px]">
               {comments.length === 0 ? (
                 <p className="text-sm text-center text-gray-400 mt-4">No comments yet.</p>
               ) : comments.map((c) => (
                 <div key={c._id} className="flex gap-2">
                   <img src={c.user?.photo} alt={c.user?.name}
-                    className="w-8 h-8 rounded-full object-cover" />
+                    onClick={(e)=>{navigate(`/profile/${c._id}`); e.stopPropagation()}}
+                    className="w-8 h-8 rounded-full object-cover  hover:cursor-pointer" />
                   <div>
-                    <p className="text-sm font-medium">{c.user?.name}</p>
+                    <p onClick={(e)=>{navigate(`/profile/${c._id}`); e.stopPropagation()}}
+                      className="text-sm font-medium  hover:cursor-pointer">{c.user?.name}</p>
                     <p className="text-sm">{c.text}</p>
                     <span className="text-xs text-gray-400">{moment(c.createdAt).fromNow()}</span>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="p-4 border-t flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Write a comment..."
-                value={comment}
-                disabled={loadingComment}
-                onChange={(e) => setComment(e.target.value)}
-                className="flex-1 border rounded px-3 py-2"
-              />
-              <button
-                onClick={submitComment}
-                disabled={loadingComment}
-                className={`px-3 py-2 bg-green-600 text-white rounded ${loadingComment ? "opacity-50" : "hover:bg-green-700"}`}
-              >
-                Send
-              </button>
+
+            {/* Fixed input at bottom */}
+            <div className="p-4 border-t bg-white fixed bottom-0 left-0 w-full">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Write a comment..."
+                  value={comment}
+                  disabled={loadingComment}
+                  onChange={(e) => setComment(e.target.value)}
+                  className="flex-1 border rounded px-3 py-2"
+                />
+                <button
+                  onClick={submitComment}
+                  disabled={loadingComment}
+                  className={`px-3 py-2 bg-green-600 text-white rounded ${loadingComment ? "opacity-50" : "hover:bg-green-700"}`}
+                >
+                  Send
+                </button>
+              </div>
             </div>
           </div>
         )}
+
 
         {/* Due Date Modal */}
         {showDueModal && (
