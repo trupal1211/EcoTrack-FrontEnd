@@ -283,7 +283,7 @@ export default function Home() {
   })), [reportLocations]);
 
   const memoizedMap = useMemo(() => (
-    <GoogleMap reports={locations} userCity={user.city} />
+      <GoogleMap reports={locations} userCity={user?.city || "Gujrat"} />
   ), [locations, user.city]);
 
   return (
