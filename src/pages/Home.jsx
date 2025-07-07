@@ -23,24 +23,11 @@ export default function Home() {
   const [showForm, setShowForm] = useState(false);
   const [showMapMobile, setShowMapMobile] = useState(false);
 
-  // useEffect(() => {
-  //   setPage(1); // ✅ Reset page when filter changes
-  // }, [city, status]);
-
-  // useEffect(() => {
-  //   fetchReports();
-  // }, [page]);
-
-  // useEffect(() => {
-  //   fetchReportsForLocation();
-  //   fetchReports();
-  // }, [city, status]);
-
   useEffect(() => {
     fetchReports();
     fetchReportsForLocation();
-  }, [city, status, page]);
-
+    setPage(1)
+  }, [city, status]);
 
 
   useEffect(() => {
@@ -49,7 +36,6 @@ export default function Home() {
       reportListRef.current.scrollIntoView({ top: 0, behavior: "smooth" });
     }
   }, [page]);
-
 
 
   const fetchReports = async () => {
@@ -143,7 +129,7 @@ export default function Home() {
       {/* Right - Map (Desktop only) */}
       <div className="hidden md:block w-[40%] p-4">
         <div className="w-full h-[82%] rounded-xl overflow-hidden border shadow-md sticky top-[28px]">
-          <GoogleMap reports={locations} userCity={user?.city || "Gujrat"} />
+          <GoogleMap reports={locations} userCity={user?.city || "nadiad"} />
         </div>
       </div>
 

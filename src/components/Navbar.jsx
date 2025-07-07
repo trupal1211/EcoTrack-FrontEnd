@@ -150,7 +150,7 @@ export default function Navbar() {
 
       {/* MOBILE Sidebar (when logged in) */}
       {menuOpen && user && (
-        <div className="md:hidden fixed top-[68px] left-0 w-50 h-[calc(100vh-68px)] bg-white shadow-lg z-60 flex flex-col justify-between p-5 pb-8">
+        <div className="md:hidden fixed top-[68px] left-0 w-50 h-[calc(100vh-68px)] bg-white shadow-lg z-[60] flex flex-col justify-between p-5 pb-8">
           <div className="space-y-5">
             {navItems.map(
               (item) =>
