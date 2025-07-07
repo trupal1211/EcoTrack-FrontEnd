@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
-export default function GoogleMap({ reports, userCity }) {
+export default function GoogleMapLocation({ reports , userCity}) {
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
   const infoWindowRef = useRef(null);
+
 
   const getPinIcon = (status) => {
     const colorMap = {
@@ -116,79 +117,18 @@ export default function GoogleMap({ reports, userCity }) {
 
 
 
-      //   // Report markers
-      //   reports.forEach((report) => {
-      //     if (report.location?.lat && report.location?.lng) {
-      //       new window.google.maps.Marker({
-      //         position: report.location,
-      //         map: newMap,
-      //         title: report.title,
-      //         icon: getPinIcon(report.status),
-      //       });
-
-      //     }
-      //   });
+      // Report markers
+      if (reports.location?.lat && reports.location?.lng) {
+  new window.google.maps.Marker({
+    position: reports.location,
+    map: newMap,
+    title: reports.title,
+    icon: getPinIcon(reports.status),
+  });
+}
 
 
-
-
-
-      reports.forEach((report) => {
-        if (report.location?.lat && report.location?.lng) {
-          const marker = new window.google.maps.Marker({
-            position: report.location,
-            map: newMap,
-            title: report.title,
-            icon: getPinIcon(report.status),
-          });
-
-          marker.addListener("click", () => {
-            // Always show all pins — so no localStorage now
-
-            // Close any previously opened InfoWindow
-            if (infoWindowRef.current) {
-              infoWindowRef.current.close();
-            }
-
-            const contentString = `
-        <div style="font-family: Arial, sans-serif; padding: 10px; max-width: 220px;">
-          <div style="font-size: 14px; font-weight: normal; margin-bottom: 8px; color: #111827;">
-            ${report.title}
-          </div>
-          <a 
-            href="/report/${report._id}" 
-            style="
-              display: inline-block;
-              padding: 4px 10px;
-              background-color: #10b981;
-              color: white;
-              text-decoration: none;
-              border-radius: 6px;
-              font-size: 14px;
-              font-weight: 500;
-            "
-          >
-            View Report     </a>
-        </div>
-      `;
-
-            const infoWindow = new window.google.maps.InfoWindow({
-              content: contentString,
-            });
-
-            infoWindow.open(newMap, marker);
-            infoWindowRef.current = infoWindow;
-
-            // // (Optional) Hide default close button
-            // window.google.maps.event.addListenerOnce(infoWindow, "domready", () => {
-            //   const closeBtn = document.querySelector(".gm-ui-hover-effect");
-            //   if (closeBtn) closeBtn.style.display = "none";
-            // });
-          });
-        }
-      });
-
-    };
+     };
 
 
     const geocodeCity = (cityName) => {

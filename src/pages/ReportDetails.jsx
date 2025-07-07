@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import GoogleMapLocation from "../components/GoogleMapLocation"
 
 // Custom slider arrows
 const CustomNextArrow = ({ onClick }) => (
@@ -56,6 +57,7 @@ export default function ReportDetails() {
   const [resolving, setResolving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletionStatus, setDeletionStatus] = useState(false);
+  const [openMap,setOpenMap]=useState(false)
 
 
   useEffect(() => {
@@ -77,7 +79,7 @@ export default function ReportDetails() {
   const {
     _id, title, description, photos = [], landmark, city, status,
     postedBy, takenBy, resolvedImages = [], resolutionDescription,
-    dueDate, createdAt, comments = [], upvotes = [], takenOn, resolvedOn
+    dueDate, createdAt, comments = [], upvotes = [], takenOn, resolvedOn , autoLocation
   } = report;
 
   const hasUpvoted = user && upvotes.includes(user._id);
@@ -179,6 +181,15 @@ export default function ReportDetails() {
     afterChange: (idx) => setIndex(idx + 1),
     nextArrow: <CustomNextArrow />, prevArrow: <CustomPrevArrow />,
   });
+
+
+  const location = {
+  _id:_id,
+  title: title,       
+  status: status,                  
+  location: autoLocation
+};
+
 
   return (
     <div className="fixed inset-0 top-[68px] bg-gray-100 overflow-hidden">
@@ -584,8 +595,39 @@ export default function ReportDetails() {
             </div>
           </div>
         )}
-
       </div>
+
+       <button
+        onClick={(e) => {setOpenMap(true); e.stopPropagation()}}
+        className={`fixed z-30 bg-gray-200 border text-gray-800 rounded-full shadow text-xl w-14 h-14 flex items-center justify-center sm:right-5 sm:bottom-8 right-5 bottom-4`}
+        aria-label="Show Map"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="30"
+          height="30"
+          fill="currentColor"
+          className="bi bi-geo-alt"
+          viewBox="0 0 16 16"
+        >
+          <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10" />
+          <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6" />
+        </svg>
+      </button>
+
+       {openMap && (
+              <div className="fixed inset-0 z-40 bg-white">
+                <div className="absolute top-16 right-4 z-50">
+                  <button
+                    onClick={() => setOpenMap(false)}
+                    className="p-2 bg-gray-800 text-white rounded-full shadow-md"
+                  >
+                    &#x2715;
+                  </button>
+                </div>
+                <GoogleMapLocation reports={location} userCity={user.city} />
+              </div>
+      )}
     </div>
   );
 }

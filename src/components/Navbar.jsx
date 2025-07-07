@@ -41,9 +41,8 @@ export default function Navbar() {
           {/* EcoTrack Logo */}
           <Link
             to="/"
-            className={`font-bold text-green-600 tracking-wide text-xl sm:text-2xl ${
-              user ? "absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0" : ""
-            }`}
+            className={`font-bold text-green-600 tracking-wide text-xl sm:text-2xl ${user ? "absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0" : ""
+              }`}
           >
             EcoTrack
           </Link>
@@ -58,10 +57,9 @@ export default function Navbar() {
                   key={item.path}
                   to={item.path}
                   className={({ isActive }) =>
-                    `relative text-[15px] font-medium ${
-                      isActive
-                        ? "text-green-600 after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-full after:bg-green-600 after:rounded-full"
-                        : "text-gray-700 hover:text-green-600"
+                    `relative text-[15px] font-medium ${isActive
+                      ? "text-green-600 after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-full after:bg-green-600 after:rounded-full"
+                      : "text-gray-700 hover:text-green-600"
                     }`
                   }
                   onClick={closeAllMenus}
@@ -77,7 +75,13 @@ export default function Navbar() {
           {user ? (
             <div
               className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded-md hover:bg-gray-100"
-              onClick={toggleDropdown}
+              onClick={() => {
+                if (window.innerWidth < 768) {
+                  navigate("/profile"); // 👉 Only on mobile
+                } else {
+                  toggleDropdown(); // 👉 Desktop toggles dropdown
+                }
+              }}
             >
               <img
                 src={user.photo || `https://ui-avatars.com/api/?name=${user.name}`}
@@ -146,8 +150,8 @@ export default function Navbar() {
 
       {/* MOBILE Sidebar (when logged in) */}
       {menuOpen && user && (
-        <div className="md:hidden fixed top-[68px] left-0 w-56 h-[calc(100vh-68px)] bg-white shadow-lg z-40 flex flex-col justify-between p-5">
-          <div className="space-y-4">
+        <div className="md:hidden fixed top-[68px] left-0 w-50 h-[calc(100vh-68px)] bg-white shadow-lg z-40 flex flex-col justify-between p-5 pb-8">
+          <div className="space-y-5">
             {navItems.map(
               (item) =>
                 (!item.roles || item.roles.includes(user?.role)) && (
@@ -155,8 +159,7 @@ export default function Navbar() {
                     key={item.path}
                     to={item.path}
                     className={({ isActive }) =>
-                      `block text-sm font-medium ${
-                        isActive ? "text-green-600 font-semibold" : "text-gray-700 hover:text-green-600"
+                      `block text-sm font-medium ${isActive ? "text-green-600 font-semibold" : "text-gray-700 hover:text-green-600"
                       }`
                     }
                     onClick={closeAllMenus}
@@ -173,7 +176,7 @@ export default function Navbar() {
               className="flex items-center gap-2 text-gray-700 hover:text-green-600"
               onClick={closeAllMenus}
             >
-             👤 Profile
+              👤 Profile
             </Link>
             <Link
               to="/ngo-registration"
