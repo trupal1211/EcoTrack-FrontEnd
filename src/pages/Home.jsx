@@ -356,7 +356,7 @@ export default function Home() {
               &#x2715;
             </button>
           </div>
-          <GoogleMap reports={locations} userCity={user.city || "Gujrat"} />
+          <GoogleMap reports={locations} userCity={user?.city || "Gujrat"} />
         </div>
       )}
 
