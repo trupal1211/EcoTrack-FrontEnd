@@ -47,6 +47,15 @@ export default function ReportDetails() {
   const [showMobileComments, setShowMobileComments] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
+  const [showResolveModal, setShowResolveModal] = useState(false);
+  const [resolutionDescriptionInput, setResolutionDescriptionInput] = useState("");
+  const [previewResolveImages, setPreviewResolveImages] = useState([]);
+  const [resolveImages, setResolveImages] = useState([]);
+  const [resolving, setResolving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletionStatus, setDeletionStatus] = useState(false);
+
+
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
@@ -97,15 +106,71 @@ export default function ReportDetails() {
 
   const submitDueDate = async () => {
     if (!dueDateInput) return toast.error("Select a date");
+
     setLoadingTake(true);
-    await api
-      .put(`/ngo/take/${_id}`, { dueDate: dueDateInput })
-      .catch(() => toast.error("Failed to take"));
-    const res = await api.get(`/report/reports/${_id}`);
-    setReport(res.data.report);
-    setShowDueModal(false);
-    setLoadingTake(false);
+    try {
+      await api.put(`/ngo/take/${_id}`, { dueDate: dueDateInput });
+      const res = await api.get(`/report/reports/${_id}`);
+      setReport(res.data.report);
+      setShowDueModal(false);
+      toast.success("Report taken successfully!");
+    } catch {
+      toast.error("Failed to take");
+    } finally {
+      setLoadingTake(false);
+    }
   };
+
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length + resolveImages.length > 5) {
+      return toast.error("You can upload max 5 images");
+    }
+    setResolveImages((prev) => [...prev, ...files]);
+    setPreviewResolveImages((prev) => [
+      ...prev,
+      ...files.map((file) => URL.createObjectURL(file)),
+    ]);
+  };
+
+  const handleResolveSubmit = async () => {
+    if (resolveImages.length < 1) return toast.error("At least 1 image required");
+    if (!resolutionDescriptionInput.trim()) return toast.error("Description required");
+    setResolving(true);
+    try {
+      const formData = new FormData();
+      resolveImages.forEach((img) => formData.append("resolvedImages", img));
+      formData.append("description", resolutionDescriptionInput);
+
+      await api.put(`/ngo/complete/${_id}`, formData);
+      const res = await api.get(`/report/reports/${_id}`);
+      setReport(res.data.report);
+      setShowResolveModal(false);
+      toast.success("Report resolved successfully!");
+      setResolutionDescriptionInput("");
+      setResolveImages([]);
+      setPreviewResolveImages([]);
+    } catch (error) {
+      toast.error(error?.response || error || "Resolve failed");
+    }
+    setResolving(false);
+  };
+
+  const handleDeleteReport = async () => {
+    setDeletionStatus(true)
+    try {
+      await api.delete(`/admin/report/${_id}`);
+      toast.success("Report deleted");
+      window.location.href = "/";
+    } catch {
+      toast.error("Delete failed");
+    } finally {
+      setDeletionStatus(false)
+    }
+  };
+
+
 
   const sliderSettings = (setIndex) => ({
     dots: false, arrows: true, infinite: false, speed: 300, slidesToShow: 1,
@@ -131,8 +196,8 @@ export default function ReportDetails() {
                   </div>
                 </div>
                 <span className={`text-xs px-3 py-1 rounded-full capitalize font-medium ${status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                    status === "taken" ? "bg-blue-100 text-blue-700" :
-                      "bg-green-100 text-green-700"
+                  status === "taken" ? "bg-blue-100 text-blue-700" :
+                    "bg-green-100 text-green-700"
                   }`}>{status}</span>
               </div>
 
@@ -160,7 +225,7 @@ export default function ReportDetails() {
                 <p className="text-xs text-gray-500">{landmark}, {city}</p>
               </div>
 
-              <div className="flex justify-between items-center px-4 py-2.5 border-t text-sm text-gray-600">
+              <div className="flex justify-between items-center px-4 mb-4 py-2.5 border-t text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <ArrowBigUp size={24} stroke={hasUpvoted ? "#3b82f6" : "#9ca3af"}
                     fill={hasUpvoted ? "#3b82f6" : "none"}
@@ -232,14 +297,52 @@ export default function ReportDetails() {
               )}
 
 
+              {/* IncompletedBy block (after resolution section) */}
+              {report.incompletedBy?.length > 0 && (
+                <div className="bg-red-100 p-4 text-sm mt-0">
+                  <p className="mb-4 font-semibold text-black-700 text-[16px]">Previously Incomplete By</p>
+                  {report.incompletedBy.map((user) => (
+                    <div key={user._id} className="flex items-center gap-3">
+                      <img src={user.photo} className="w-10 h-10 rounded-full object-cover border" />
+                      <div>
+                        <p className="text-red-700 font-semibold text-[15px]">{user.name}</p>
+                        <p className="text-gray-600 text-sm">{user.city}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {canTake && (
                 <button
                   onClick={() => setShowDueModal(true)}
                   disabled={loadingTake}
-                  className="w-full py-3 bg-green-600 text-white font-semibold mt-2 hover:bg-green-700"
+                  className={`w-full sm:py-3 py-2.5 bg-green-600 text-white font-semibold ${report.incompletedBy.length > 0 ? "mt-0" : "mt-2"} hover:bg-green-700`}
                 >
                   {loadingTake ? "Processing…" : "Take this report"}
                 </button>
+              )}
+
+              {status === "taken" && takenBy?._id === user?._id && (user?.role === "ngo" || user?.role === "admin") && (
+                <button
+                  onClick={() => setShowResolveModal(true)}
+                  className="w-full sm:py-3 py-2.5 bg-blue-600 text-white font-semibold mt-0 hover:bg-blue-700"
+                >
+                  Resolve Report
+                </button>
+              )}
+
+
+              {/* Delete Report (admin only) */}
+              {user?.role === "admin" && (
+                <div className="p">
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full sm:py-3 py-2.5 bg-red-600 text-white font-semibold mt-2 hover:bg-red-700"
+                  >
+                    Delete Report
+                  </button>
+                </div>
               )}
             </div>
 
@@ -348,18 +451,24 @@ export default function ReportDetails() {
         {/* Due Date Modal */}
         {showDueModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm">
+            <div className="bg-white p-6 mx-4 rounded shadow-lg w-full max-w-sm">
               <h3 className="font-semibold flex items-center gap-1 mb-3">
                 <Calendar size={20} /> Set Due Date
               </h3>
               <input
                 type="date"
                 value={dueDateInput}
+                min={new Date().toISOString().split("T")[0]} // ✅ sets today as minimum date
+                max={new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]} // Today + 15 days
                 onChange={(e) => setDueDateInput(e.target.value)}
                 className="w-full border px-3 py-2 rounded mb-4"
               />
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowDueModal(false)} className="px-4 py-2 rounded border">
+                <button
+                  onClick={() => setShowDueModal(false)}
+                  className="px-4 py-2 rounded border"
+                  disabled={loadingTake}
+                >
                   Cancel
                 </button>
                 <button
@@ -373,6 +482,95 @@ export default function ReportDetails() {
             </div>
           </div>
         )}
+
+
+        {showResolveModal && (
+          <div className="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center">
+            <div className="bg-white p-6 rounded max-w-md mx-4  mt-20 w-full space-y-4">
+              <h2 className="text-lg font-semibold text-gray-800">Resolve Report</h2>
+
+
+              <label className="block font-medium mb-1">Upload Photos</label>
+              <div className="border border-dashed border-gray-400 rounded-lg p-4 bg-gray-50 text-center cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="photoUpload"
+                />
+                <label htmlFor="photoUpload" className="cursor-pointer text-sm text-gray-600">
+                  Drag & drop or click to upload (1–5 photos)
+                </label>
+                <div className="mt-2 flex flex-wrap gap-2 justify-center">
+                  {previewResolveImages.map((src, idx) => (
+                    <img
+                      key={idx}
+                      src={src}
+                      alt="preview"
+                      className="h-16 w-16 object-cover rounded border"
+                    />
+                  ))}
+                </div>
+              </div>
+
+
+              <label className="block text-sm font-medium text-gray-700">Resolution Description</label>
+              <textarea
+                rows={4}
+                value={resolutionDescriptionInput}
+                onChange={(e) => setResolutionDescriptionInput(e.target.value)}
+                className="w-full border px-3 py-2 rounded"
+                disabled={resolving}
+              />
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowResolveModal(false)}
+                  className="px-4 py-2 border rounded"
+                  disabled={resolving}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleResolveSubmit}
+                  disabled={resolving}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                >
+                  {resolving ? "Submitting..." : "Submit"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirm Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center">
+            <div className="bg-white p-6 rounded max-w-sm w-full  mx-4 text-center">
+              <h2 className="text-lg font-semibold text-black-600">Delete Report?</h2>
+              <p className="text-sm text-gray-600 mt-2 mb-4">Are You Sure to delete this reprot ,This action cannot be undone.</p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 border rounded"
+                  disabled={deletionStatus}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteReport}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  disabled={deletionStatus}
+                >
+                  {deletionStatus ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
