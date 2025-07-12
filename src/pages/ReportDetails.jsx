@@ -79,7 +79,7 @@ export default function ReportDetails() {
   const {
     _id, title, description, photos = [], landmark, city, status,
     postedBy, takenBy, resolvedImages = [], resolutionDescription,
-    dueDate, createdAt, comments = [], upvotes = [], takenOn, resolvedOn , autoLocation
+    dueDate, createdAt,incompletedBy = [], comments = [], upvotes = [], takenOn, resolvedOn , autoLocation
   } = report;
 
   const hasUpvoted = user && upvotes.includes(user._id);
