@@ -312,7 +312,7 @@ export default function ReportDetails() {
 
 
               {/* IncompletedBy block (after resolution section) */}
-              {report.incompletedBy?.length > 0 && (
+              {Array.isArray(report.incompletedBy) && report.incompletedBy?.length > 0 && (
                 <div className="bg-red-100 p-4 text-sm mt-0">
                   <p className="mb-4 font-semibold text-black-700 text-[16px]">Previously Incomplete By</p>
                   {report.incompletedBy.map((user) => (
